@@ -1,5 +1,5 @@
 .{
-    .name = "chip8",
+    .name = .chip8,
     .version = "0.0.0",
     .dependencies = .{
         .SDL = .{
@@ -12,4 +12,5 @@
         "build.zig.zon",
         "src",
     },
+    .fingerprint = 0xa61914ab9c2b7d19,
 }

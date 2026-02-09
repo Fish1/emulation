@@ -34,12 +34,14 @@ fn load() !void {
     const file = try std.fs.openFileAbsolute(path, .{});
     defer file.close();
 
-    var file_buffer = std.io.bufferedReader(file.reader());
+    // var file_buffer = std.io.bufferedReader(file.reader());
+
     var buffer: [1]u8 = undefined;
 
     var offset: u16 = 0;
     while (true) {
-        const num_read_bytes = try file_buffer.read(&buffer);
+        // const num_read_bytes = try file_buffer.read(&buffer);
+        const num_read_bytes = try file.read(&buffer);
         if (num_read_bytes == 0) {
             break;
         }
@@ -119,7 +121,7 @@ pub fn main() !void {
 
     var quit = false;
     var counter: usize = 0x200;
-    var random = std.rand.DefaultPrng.init(1);
+    var random = std.Random.DefaultPrng.init(1);
 
     var fps_timer = try std.time.Timer.start();
 
