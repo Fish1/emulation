@@ -14,7 +14,7 @@
 			devShells.default = pkgs.mkShell {
 				buildInputs = [
 					pkgs.zig
-					pkgs.sdl3
+					pkgs.SDL2
 				];
 			};
 		}

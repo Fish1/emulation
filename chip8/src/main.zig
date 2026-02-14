@@ -1,144 +1,27 @@
 const std = @import("std");
-
-const c = @cImport({
-    @cInclude("SDL2/SDL.h");
-});
-
-const data_register = @import("data_register.zig");
-const DataRegister = data_register.DataRegister;
-
-const memory = @import("memory.zig");
-const address_register = @import("address_register.zig");
-const OPCode = @import("instruction.zig").OPCode;
-
-const instructions = @import("instructions/instructions.zig");
-
-const Renderer = @import("Renderer.zig").Renderer();
-const Keyboard = @import("Keyboard.zig").Keyboard();
-const Timer = @import("Timer.zig").Timer();
-
-fn get_obj_path() [*:0]u8 {
-    return std.os.argv[0];
-}
-
-fn valid_arguments() bool {
-    if (std.os.argv.len != 2) {
-        return false;
-    }
-    return true;
-}
-
-fn load() !void {
-    const path = std.mem.sliceTo(std.os.argv[1], 0);
-    std.log.info("reading file = {s}", .{path});
-    const file = try std.fs.openFileAbsolute(path, .{});
-    defer file.close();
-
-    // var file_buffer = std.io.bufferedReader(file.reader());
-
-    var buffer: [1]u8 = undefined;
-
-    var offset: u16 = 0;
-    while (true) {
-        // const num_read_bytes = try file_buffer.read(&buffer);
-        const num_read_bytes = try file.read(&buffer);
-        if (num_read_bytes == 0) {
-            break;
-        }
-        memory.set_offset(offset, buffer[0]);
-        offset += 1;
-    }
-}
-
-fn run(counter: *usize, random: *std.Random.Xoshiro256, renderer: *Renderer, keyboard: *Keyboard, delay_timer: *Timer, frame_instruction_count: u64) !void {
-    const instruction = memory.get_instruction(counter.*);
-    const opcode: OPCode = @enumFromInt(instruction >> 12);
-    var inc = true;
-
-    // std.log.info("addr: {:0>4} data: {x:0>4} opcode: {}", .{ counter.*, instruction, opcode });
-    switch (opcode) {
-        OPCode.MACHINE => try instructions.machine(instruction, renderer, counter),
-        OPCode.SUBROUTINE => try instructions.subroutine(instruction, counter, &inc),
-
-        OPCode.DRAW => {
-            if (frame_instruction_count == 0) {
-                try instructions.draw(instruction, renderer);
-            } else {
-                counter.* -= 2;
-            }
-        },
-        OPCode.LOAD => instructions.load(instruction),
-        OPCode.LOAD_I => instructions.load_i(instruction),
-        OPCode.RAND => instructions.rand(instruction, random),
-        OPCode.MATH => instructions.math(instruction),
-        OPCode.JUMP => instructions.jump(instruction, counter, &inc),
-        OPCode.ADD => instructions.add(instruction),
-        OPCode.JUMP_OFFSET => instructions.jump_offset(instruction, counter, &inc),
-
-        OPCode.SKIP_EQ_IMM => instructions.skip_eq_imm(instruction, counter),
-        OPCode.SKIP_NE_IMM => instructions.skip_ne_imm(instruction, counter),
-        OPCode.SKIP_NE => instructions.skip_ne(instruction, counter),
-        OPCode.SKIP_EQ => instructions.skip_eq(instruction, counter),
-        OPCode.SKIP_KEY => instructions.skip_key(instruction, counter, keyboard),
-
-        OPCode.OTHER => instructions.other(instruction, delay_timer),
-    }
-
-    if (inc == true) {
-        counter.* += 2;
-    }
-}
-
-fn poll(quit: *bool, keyboard: *Keyboard) void {
-    var event: c.SDL_Event = undefined;
-    while (c.SDL_PollEvent(&event) != 0) {
-        switch (event.type) {
-            c.SDL_QUIT => {
-                quit.* = true;
-            },
-            c.SDL_KEYDOWN, c.SDL_KEYUP => {
-                keyboard.handle_event(&event.key);
-            },
-            else => {},
-        }
-    }
-}
+const chip8 = @import("chip8");
 
 pub fn main() !void {
-    if (valid_arguments() == false) {
-        std.log.err("usage\napp [bin]", .{});
-        return;
-    }
+    // Prints to stderr, ignoring potential errors.
+    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+    try chip8.bufferedPrint();
+}
 
-    var renderer = try Renderer.init();
-    defer renderer.destroy();
+test "simple test" {
+    const gpa = std.testing.allocator;
+    var list: std.ArrayList(i32) = .empty;
+    defer list.deinit(gpa); // Try commenting this out and see if zig detects the memory leak!
+    try list.append(gpa, 42);
+    try std.testing.expectEqual(@as(i32, 42), list.pop());
+}
 
-    var keyboard = Keyboard.init();
-    var delay_timer = Timer.init();
-    var sound_timer = Timer.init();
-
-    try load();
-
-    var quit = false;
-    var counter: usize = 0x200;
-    var random = std.Random.DefaultPrng.init(1);
-
-    var fps_timer = try std.time.Timer.start();
-
-    while (quit == false) {
-        delay_timer.tick();
-        sound_timer.tick();
-
-        poll(&quit, &keyboard);
-
-        for (0..11) |frame_counter| {
-            try run(&counter, &random, &renderer, &keyboard, &delay_timer, frame_counter);
+test "fuzz example" {
+    const Context = struct {
+        fn testOne(context: @This(), input: []const u8) anyerror!void {
+            _ = context;
+            // Try passing `--fuzz` to `zig build test` and see if it manages to fail this test case!
+            try std.testing.expect(!std.mem.eql(u8, "canyoufindme", input));
         }
-
-        const remaining = (std.time.ns_per_s / 60) - fps_timer.read();
-        std.time.sleep(remaining);
-        fps_timer.reset();
-    }
-
-    std.log.info("goodbye", .{});
+    };
+    try std.testing.fuzz(Context{}, Context.testOne, .{});
 }
