@@ -6,6 +6,7 @@ const sdl = @cImport({
 
 var window: ?*sdl.SDL_Window = null;
 var window_surface: [*c]sdl.SDL_Surface = undefined;
+var draw_surface: [*c]sdl.SDL_Surface = undefined;
 
 const WindowInitErrors = error{
     FAILED_TO_INITIALIZE_RENDERER,
@@ -24,6 +25,7 @@ pub fn init() WindowInitErrors!void {
     }
 
     window_surface = sdl.SDL_GetWindowSurface(window);
+    draw_surface = sdl.SDL_CreateSurface(64, 32, sdl.SDL_PIXELFORMAT_RGBA32);
 }
 
 pub fn deinit() void {
@@ -63,5 +65,31 @@ pub fn clear_screen() RenderError!void {
     success = sdl.SDL_UpdateWindowSurface(window);
     if (success == false) {
         return RenderError.failed_to_update_window_surface;
+    }
+}
+
+pub fn draw(x: u8, y: u8) void {
+    const index = (y * 32) + x;
+    const pixels: [*]u8 = @ptrCast(draw_surface.*.pixels);
+    pixels[index] = 0;
+    const src_rect = sdl.SDL_Rect{
+        .x = 0,
+        .y = 0,
+        .w = 64,
+        .h = 32,
+    };
+    const dst_rect = sdl.SDL_Rect{
+        .x = 0,
+        .y = 0,
+        .w = 500,
+        .h = 500,
+    };
+    var success = sdl.SDL_BlitSurface(draw_surface, &src_rect, window_surface, &dst_rect);
+    if (success == false) {
+        std.debug.print("failed 1\n", .{});
+    }
+    success = sdl.SDL_UpdateWindowSurface(window);
+    if (success == false) {
+        std.debug.print("failed 2\n", .{});
     }
 }

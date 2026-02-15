@@ -13,10 +13,16 @@ pub const CPU = struct {
         return .{};
     }
 
-    pub fn execute(_: @This(), data: u16, program_counter: *components.program_counter.ProgramCounter) CPUError!void {
+    pub fn execute(
+        _: @This(),
+        data: u16,
+        program_counter: *components.program_counter.ProgramCounter,
+        registers: *components.registers.Registers,
+    ) CPUError!void {
         try execute_instruction(
             try parse_instruction(data),
             program_counter,
+            registers,
         );
     }
 
@@ -64,20 +70,30 @@ pub const CPU = struct {
         };
     }
 
-    fn execute_instruction(instruction: Instruction, program_counter: *components.program_counter.ProgramCounter) CPUError!void {
+    fn execute_instruction(
+        instruction: Instruction,
+        program_counter: *components.program_counter.ProgramCounter,
+        registers: *components.registers.Registers,
+    ) CPUError!void {
         std.debug.print("execute: {any}\n", .{instruction});
-        switch (instruction) {
+        return switch (instruction) {
             .clear_screen => {
                 window.clear_screen() catch return;
             },
-            .jump => |jump| {
-                program_counter.index = jump.address;
+            .jump => |i| {
+                program_counter.index = i.address;
             },
-            .load_vx_immediate => |_| {},
-            .load_i_immediate => |_| {},
-            .draw_sprite => |_| {},
-            // else => return CPUError.unimplemented_instruction,
-        }
+            .load_vx_immediate => |i| {
+                registers.r[i.vx] = i.immediate;
+            },
+            .load_i_immediate => |i| {
+                registers.i = i.immediate;
+            },
+            .draw_sprite => |i| {
+                window.draw(i.x, i.y);
+            },
+            // else => CPUError.unimplemented_instruction,
+        };
     }
 };
 

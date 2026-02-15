@@ -8,11 +8,13 @@ const Mother = @import("mother.zig").Mother;
 pub fn main() !void {
     var memory = components.memory.Memory.init();
     var program_counter = components.program_counter.ProgramCounter.init();
+    var registers = components.registers.Registers.init();
     const cpu = components.cpu.CPU.init();
 
     var mother = Mother.init(.{
         .memory = &memory,
         .program_counter = &program_counter,
+        .registers = &registers,
         .cpu = &cpu,
     });
 
@@ -23,8 +25,6 @@ pub fn main() !void {
 
     var quit = false;
     while (quit == false) {
-        // try window.clear_screen();
-
         while (window.poll()) |event| {
             switch (event) {
                 .quit => quit = true,
