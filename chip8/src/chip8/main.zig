@@ -23,7 +23,7 @@ pub fn main() !void {
 
     var quit = false;
     while (quit == false) {
-        try window.clear_screen();
+        // try window.clear_screen();
 
         while (window.poll()) |event| {
             switch (event) {

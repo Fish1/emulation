@@ -6,13 +6,13 @@ pub const ProgramCounterErrors = error{
 };
 
 pub const ProgramCounter = struct {
-    index: u16 = 0,
+    index: u16 = 0x200,
 
     pub fn init() @This() {
         return .{};
     }
 
-    pub fn increment(self: *@This()) ProgramCounterErrors!void {
+    pub fn goto_next_instruction(self: *@This()) ProgramCounterErrors!void {
         if (self.index + 2 >= components.memory.MAX_MEMORY) {
             return ProgramCounterErrors.out_of_bounds;
         }
@@ -24,6 +24,11 @@ pub const ProgramCounter = struct {
     }
 
     pub fn get_current_instruction(self: @This(), memory: *components.memory.Memory) u16 {
-        return std.mem.bytesAsSlice(u16, memory.data[self.index .. self.index + 1]);
+        const low: u16 = memory.data[self.index];
+        const high: u16 = memory.data[self.index + 1];
+        const result = (low << 8) | high;
+        // std.debug.print("low = 0x{X:0>2} high = 0x{X:0>2} result = 0x{X:0>4}\n", .{ low, high, result });
+        return result;
+        // return std.mem.bytesToValue(u16, memory.data[self.index .. self.index + 1]);
     }
 };

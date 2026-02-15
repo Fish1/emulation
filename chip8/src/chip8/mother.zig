@@ -1,5 +1,8 @@
 const std = @import("std");
+
 const components = @import("components.zig");
+
+const USER_SPACE_OFFSET = 0x200;
 
 pub const Mother = struct {
     memory: *components.memory.Memory,
@@ -21,12 +24,21 @@ pub const Mother = struct {
     pub fn load_program(self: *@This(), filename: []const u8) !void {
         const file = try std.fs.cwd().openFile(filename, .{});
         defer file.close();
-        _ = try file.readAll(&self.memory.data);
+
+        var reader_buffer: [0]u8 = undefined;
+        var reader = file.reader(&reader_buffer);
+
+        const file_stats = try file.stat();
+        const file_size = file_stats.size;
+
+        self.memory.data = std.mem.zeroes([4096]u8);
+        try reader.interface.readSliceAll(self.memory.data[USER_SPACE_OFFSET .. USER_SPACE_OFFSET + file_size]);
     }
 
     pub fn tick(self: *@This()) !void {
-        const byte = self.program_counter.get_current_byte(self.memory);
-        try self.cpu.execute(byte);
-        try self.program_counter.increment();
+        const instruction = self.program_counter.get_current_instruction(self.memory);
+        try self.program_counter.goto_next_instruction();
+
+        try self.cpu.execute(instruction, self.program_counter);
     }
 };
