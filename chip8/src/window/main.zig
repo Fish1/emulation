@@ -76,11 +76,13 @@ pub fn clear_screen() RenderError!void {
 }
 
 pub fn xor_pixel(x: u8, y: u8, set: bool) RenderError!void {
+    const _x = x % 64;
+    const _y = y % 32;
     var current_r: u8 = undefined;
     var current_g: u8 = undefined;
     var current_b: u8 = undefined;
     var current_a: u8 = undefined;
-    var success = sdl.SDL_ReadSurfacePixel(draw_surface, x, y, &current_r, &current_g, &current_b, &current_a);
+    var success = sdl.SDL_ReadSurfacePixel(draw_surface, _x, _y, &current_r, &current_g, &current_b, &current_a);
     if (success == false) {
         return RenderError.failed_to_read_surface_pixel;
     }
@@ -101,7 +103,7 @@ pub fn xor_pixel(x: u8, y: u8, set: bool) RenderError!void {
         new_b = 255;
     }
 
-    success = sdl.SDL_WriteSurfacePixel(draw_surface, x, y, new_r, new_g, new_b, 255);
+    success = sdl.SDL_WriteSurfacePixel(draw_surface, _x, _y, new_r, new_g, new_b, 255);
     if (success == false) {
         return RenderError.failed_to_write_surface_pixel;
     }
