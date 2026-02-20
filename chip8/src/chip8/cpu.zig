@@ -285,14 +285,16 @@ pub const CPU = struct {
 
             .set_vx_to_vy_shift_vx_right => |i| {
                 self.registers.r[i.vx] = self.registers.r[i.vy];
-                self.registers.r[0xF] = self.registers.r[i.vx] & 0b00000001;
+                const flag = self.registers.r[i.vx] & 0b00000001;
                 self.registers.r[i.vx] = self.registers.r[i.vx] >> 1;
+                self.registers.r[0xF] = flag;
             },
 
             .set_vx_to_vy_shift_vx_left => |i| {
                 self.registers.r[i.vx] = self.registers.r[i.vy];
-                self.registers.r[0xF] = (self.registers.r[i.vx] & 0b10000000) >> 7;
+                const flag = (self.registers.r[i.vx] & 0b10000000) >> 7;
                 self.registers.r[i.vx] = self.registers.r[i.vx] << 1;
+                self.registers.r[0xF] = flag;
             },
 
             .skip_if_vx_is_immediate => |i| {
