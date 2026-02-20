@@ -117,26 +117,56 @@ pub const CPU = struct {
                 },
             },
             0x8 => switch (d) {
-                0 => .{
+                0x0 => .{
                     .set_vx_to_vy = .{
                         .vx = @intCast(b),
                         .vy = @intCast(c),
                     },
                 },
-                1 => .{
+                0x1 => .{
                     .set_vx_to_vx_or_vy = .{
                         .vx = @intCast(b),
                         .vy = @intCast(c),
                     },
                 },
-                2 => .{
+                0x2 => .{
                     .set_vx_to_vx_and_vy = .{
                         .vx = @intCast(b),
                         .vy = @intCast(c),
                     },
                 },
-                3 => .{
-                    .set_vx_to_vx_and_vy = .{
+                0x3 => .{
+                    .set_vx_to_vx_xor_vy = .{
+                        .vx = @intCast(b),
+                        .vy = @intCast(c),
+                    },
+                },
+                0x4 => .{
+                    .add_vy_to_vx = .{
+                        .vx = @intCast(b),
+                        .vy = @intCast(c),
+                    },
+                },
+                0x5 => .{
+                    .subtract_vy_from_vx = .{
+                        .vx = @intCast(b),
+                        .vy = @intCast(c),
+                    },
+                },
+                0x6 => .{
+                    .set_vx_to_vy_shift_vx_right = .{
+                        .vx = @intCast(b),
+                        .vy = @intCast(c),
+                    },
+                },
+                0x7 => .{
+                    .set_vx_to_vy_minus_vx = .{
+                        .vx = @intCast(b),
+                        .vy = @intCast(c),
+                    },
+                },
+                0xE => .{
+                    .set_vx_to_vy_shift_vx_left = .{
                         .vx = @intCast(b),
                         .vy = @intCast(c),
                     },
@@ -161,10 +191,33 @@ pub const CPU = struct {
             },
             0xD => .{
                 .draw_sprite = .{
-                    .x_register = @intCast(b),
-                    .y_register = @intCast(c),
+                    .vx = @intCast(b),
+                    .vy = @intCast(c),
                     .height = @intCast(d),
                 },
+            },
+            0xF => switch (cd) {
+                0x1E => .{
+                    .add_vx_to_i = .{
+                        .vx = @intCast(b),
+                    },
+                },
+                0x33 => .{
+                    .write_vx_to_memory = .{
+                        .vx = @intCast(b),
+                    },
+                },
+                0x55 => .{
+                    .write_bytes_to_memory = .{
+                        .vx = @intCast(b),
+                    },
+                },
+                0x65 => .{
+                    .read_bytes_to_registers = .{
+                        .vx = @intCast(b),
+                    },
+                },
+                else => CPUError.unknown_instruction,
             },
             else => CPUError.unknown_instruction,
         };
@@ -202,12 +255,44 @@ pub const CPU = struct {
             },
             .set_vx_to_vx_or_vy => |i| {
                 self.registers.r[i.vx] = self.registers.r[i.vx] | self.registers.r[i.vy];
+                self.registers.r[0xF] = 0;
             },
             .set_vx_to_vx_and_vy => |i| {
                 self.registers.r[i.vx] = self.registers.r[i.vx] & self.registers.r[i.vy];
+                self.registers.r[0xF] = 0;
             },
             .set_vx_to_vx_xor_vy => |i| {
                 self.registers.r[i.vx] = self.registers.r[i.vx] ^ self.registers.r[i.vy];
+                self.registers.r[0xF] = 0;
+            },
+
+            .add_vy_to_vx => |i| {
+                const result = @addWithOverflow(self.registers.r[i.vx], self.registers.r[i.vy]);
+                self.registers.r[i.vx] = result[0];
+                self.registers.r[0xF] = result[1];
+            },
+            .subtract_vy_from_vx => |i| {
+                const result = @subWithOverflow(self.registers.r[i.vx], self.registers.r[i.vy]);
+                self.registers.r[i.vx] = result[0];
+                self.registers.r[0xF] = result[1] ^ 0x1;
+            },
+
+            .set_vx_to_vy_minus_vx => |i| {
+                const result = @subWithOverflow(self.registers.r[i.vy], self.registers.r[i.vx]);
+                self.registers.r[i.vx] = result[0];
+                self.registers.r[0xF] = result[1] ^ 0x1;
+            },
+
+            .set_vx_to_vy_shift_vx_right => |i| {
+                self.registers.r[i.vx] = self.registers.r[i.vy];
+                self.registers.r[0xF] = self.registers.r[i.vx] & 0b00000001;
+                self.registers.r[i.vx] = self.registers.r[i.vx] >> 1;
+            },
+
+            .set_vx_to_vy_shift_vx_left => |i| {
+                self.registers.r[i.vx] = self.registers.r[i.vy];
+                self.registers.r[0xF] = (self.registers.r[i.vx] & 0b10000000) >> 7;
+                self.registers.r[i.vx] = self.registers.r[i.vx] << 1;
             },
 
             .skip_if_vx_is_immediate => |i| {
@@ -242,9 +327,39 @@ pub const CPU = struct {
                 self.registers.r[i.vx] = @addWithOverflow(self.registers.r[i.vx], i.immediate)[0];
             },
 
+            .add_vx_to_i => |i| {
+                self.registers.i = self.registers.i + self.registers.r[i.vx];
+            },
+
+            .write_vx_to_memory => |i| {
+                const value: u16 = @intCast(self.registers.r[i.vx]);
+                const a = @mod(value, 10);
+                const b = @divFloor(@mod(value, 100), 10);
+                const c = @divFloor(@mod(value, 1000), 100);
+                memory.data[self.registers.i] = @intCast(c);
+                memory.data[self.registers.i + 1] = @intCast(b);
+                memory.data[self.registers.i + 2] = @intCast(a);
+            },
+
+            .write_bytes_to_memory => |i| {
+                for (0..i.vx + 1) |register| {
+                    memory.data[self.registers.i + register] = self.registers.r[register];
+                }
+
+                self.registers.i = self.registers.i + i.vx + 1;
+            },
+
+            .read_bytes_to_registers => |i| {
+                for (0..i.vx + 1) |register| {
+                    self.registers.r[register] = memory.query_byte(self.registers.i + @as(u16, @intCast(register)));
+                }
+
+                self.registers.i = self.registers.i + i.vx + 1;
+            },
+
             .draw_sprite => |i| {
-                const start_x = self.registers.r[i.x_register];
-                const start_y = self.registers.r[i.y_register];
+                const start_x = self.registers.r[i.vx];
+                const start_y = self.registers.r[i.vy];
                 const height = i.height;
 
                 for (0..height) |offset_y| {
@@ -324,6 +439,10 @@ const _8XY7 = struct {
     vx: u4,
     vy: u4,
 };
+const _8XYE = struct {
+    vx: u4,
+    vy: u4,
+};
 const _9XY0 = struct {
     vx: u4,
     vy: u4,
@@ -335,9 +454,21 @@ const _BNNN = struct {
     immediate: u12,
 };
 const _DXYN = struct {
-    x_register: u4,
-    y_register: u4,
+    vx: u4,
+    vy: u4,
     height: u4,
+};
+const _FX1E = struct {
+    vx: u4,
+};
+const _FX33 = struct {
+    vx: u4,
+};
+const _FX55 = struct {
+    vx: u4,
+};
+const _FX65 = struct {
+    vx: u4,
 };
 
 const Instruction = union(enum) {
@@ -354,6 +485,14 @@ const Instruction = union(enum) {
     set_vx_to_vx_and_vy: _8XY2,
     set_vx_to_vx_xor_vy: _8XY3,
 
+    add_vy_to_vx: _8XY4,
+    subtract_vy_from_vx: _8XY5,
+
+    set_vx_to_vy_minus_vx: _8XY7,
+
+    set_vx_to_vy_shift_vx_right: _8XY6,
+    set_vx_to_vy_shift_vx_left: _8XYE,
+
     skip_if_vx_is_immediate: _3XNN,
     skip_if_vx_is_not_immediate: _4XNN,
     skip_if_vx_is_vy: _5XY0,
@@ -363,6 +502,12 @@ const Instruction = union(enum) {
     load_vx_immediate: _6XNN,
 
     add_vx_immediate: _7XNN,
+
+    add_vx_to_i: _FX1E,
+
+    write_vx_to_memory: _FX33,
+    write_bytes_to_memory: _FX55,
+    read_bytes_to_registers: _FX65,
 
     draw_sprite: _DXYN,
 };

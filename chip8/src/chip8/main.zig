@@ -23,7 +23,8 @@ pub fn main() !void {
 
     // try bus.load_program("./bin/1-chip8-logo.ch8");
     // try bus.load_program("./bin/2-ibm-logo.ch8");
-    try bus.load_program("./bin/3-corax+.ch8");
+    // try bus.load_program("./bin/3-corax+.ch8");
+    try bus.load_program("./bin/4-flags.ch8");
 
     var quit = false;
     var tick_timer: f64 = 0.0;
@@ -37,7 +38,7 @@ pub fn main() !void {
             }
         }
 
-        if (tick_timer >= 0.1) {
+        if (tick_timer >= 0.01) {
             try bus.tick();
             tick_timer = 0.0;
         }

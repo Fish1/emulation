@@ -30,4 +30,8 @@ pub const Memory = struct {
         const high: u16 = self.data[self.counter + 1];
         return (low << 8) | high;
     }
+
+    pub fn query_byte(self: @This(), address: u16) u8 {
+        return self.data[address];
+    }
 };
