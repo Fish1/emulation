@@ -7,14 +7,20 @@ const USER_SPACE_OFFSET = 0x200;
 pub const Bus = struct {
     memory: *components.memory.Memory,
     cpu: *components.cpu.CPU,
+    timers: *components.timers.Timers,
+    keyboard: *components.keyboard.Keyboard,
 
     pub fn init(options: struct {
         memory: *components.memory.Memory,
         cpu: *components.cpu.CPU,
+        timers: *components.timers.Timers,
+        keyboard: *components.keyboard.Keyboard,
     }) @This() {
         return .{
             .memory = options.memory,
             .cpu = options.cpu,
+            .timers = options.timers,
+            .keyboard = options.keyboard,
         };
     }
 
@@ -25,9 +31,10 @@ pub const Bus = struct {
         _ = try std.fs.cwd().readFile(filename, self.memory.data[USER_SPACE_OFFSET..4096]);
     }
 
-    pub fn tick(self: *@This()) !void {
+    pub fn tick(self: *@This(), delta: f64) !void {
         const instruction = self.memory.get_instruction();
+        self.timers.process(delta);
         try self.memory.increment_counter();
-        try self.cpu.execute(instruction, self.memory);
+        try self.cpu.execute(instruction, self.memory, self.timers, self.keyboard);
     }
 };

@@ -50,10 +50,14 @@ pub const CPU = struct {
         self: *@This(),
         data: u16,
         memory: *components.memory.Memory,
+        timers: *components.timers.Timers,
+        keyboard: *components.keyboard.Keyboard,
     ) CPUError!void {
         try self.execute_instruction(
             try self.parse_instruction(data),
             memory,
+            timers,
+            keyboard,
         );
     }
 
@@ -196,7 +200,30 @@ pub const CPU = struct {
                     .height = @intCast(d),
                 },
             },
+            0xE => switch (cd) {
+                0x9E => .{
+                    .skip_if_pressed = .{
+                        .vx = @intCast(b),
+                    },
+                },
+                0xA1 => .{
+                    .skip_if_not_pressed = .{
+                        .vx = @intCast(b),
+                    },
+                },
+                else => CPUError.unknown_instruction,
+            },
             0xF => switch (cd) {
+                0x07 => .{
+                    .set_vx_to_delay_timer = .{
+                        .vx = @intCast(b),
+                    },
+                },
+                0x15 => .{
+                    .set_delay_timer_to_vx = .{
+                        .vx = @intCast(b),
+                    },
+                },
                 0x1E => .{
                     .add_vx_to_i = .{
                         .vx = @intCast(b),
@@ -227,6 +254,8 @@ pub const CPU = struct {
         self: *@This(),
         instruction: Instruction,
         memory: *components.memory.Memory,
+        timers: *components.timers.Timers,
+        keyboard: *components.keyboard.Keyboard,
     ) CPUError!void {
         std.log.debug("execute {any}", .{instruction});
         return switch (instruction) {
@@ -317,6 +346,16 @@ pub const CPU = struct {
                     memory.counter = memory.counter + 2;
                 }
             },
+            .skip_if_pressed => |i| {
+                if (keyboard.keys[self.registers.r[i.vx]] == true) {
+                    memory.counter = memory.counter + 2;
+                }
+            },
+            .skip_if_not_pressed => |i| {
+                if (keyboard.keys[self.registers.r[i.vx]] == false) {
+                    memory.counter = memory.counter + 2;
+                }
+            },
 
             .load_i_immediate => |i| {
                 self.registers.i = i.immediate;
@@ -357,6 +396,13 @@ pub const CPU = struct {
                 }
 
                 self.registers.i = self.registers.i + i.vx + 1;
+            },
+
+            .set_delay_timer_to_vx => |i| {
+                timers.delay = self.registers.r[i.vx];
+            },
+            .set_vx_to_delay_timer => |i| {
+                self.registers.r[i.vx] = timers.delay;
             },
 
             .draw_sprite => |i| {
@@ -460,6 +506,18 @@ const _DXYN = struct {
     vy: u4,
     height: u4,
 };
+const _EX9E = struct {
+    vx: u4,
+};
+const _EXA1 = struct {
+    vx: u4,
+};
+const _FX07 = struct {
+    vx: u4,
+};
+const _FX15 = struct {
+    vx: u4,
+};
 const _FX1E = struct {
     vx: u4,
 };
@@ -499,6 +557,8 @@ const Instruction = union(enum) {
     skip_if_vx_is_not_immediate: _4XNN,
     skip_if_vx_is_vy: _5XY0,
     skip_if_vx_is_not_vy: _9XY0,
+    skip_if_pressed: _EX9E,
+    skip_if_not_pressed: _EXA1,
 
     load_i_immediate: _ANNN,
     load_vx_immediate: _6XNN,
@@ -510,6 +570,9 @@ const Instruction = union(enum) {
     write_vx_to_memory: _FX33,
     write_bytes_to_memory: _FX55,
     read_bytes_to_registers: _FX65,
+
+    set_delay_timer_to_vx: _FX15,
+    set_vx_to_delay_timer: _FX07,
 
     draw_sprite: _DXYN,
 };
