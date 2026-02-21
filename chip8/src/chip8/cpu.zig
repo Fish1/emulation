@@ -42,17 +42,32 @@ pub const CPU = struct {
     stack: Stack = .init(),
     registers: Registers = .init(),
 
+    wait_for_key: bool = false,
+    wait_for_key_register: u4 = 0,
+
     pub fn init() @This() {
         return .{};
     }
 
-    pub fn execute(
+    pub fn tick(
         self: *@This(),
         data: u16,
         memory: *components.memory.Memory,
         timers: *components.timers.Timers,
         keyboard: *components.keyboard.Keyboard,
     ) CPUError!void {
+        if (self.wait_for_key) {
+            // std.debug.print("waiting for key\n", .{});
+            for (keyboard.keys, 0..16) |key, index| {
+                if (key == .just_released) {
+                    self.registers.r[self.wait_for_key_register] = @intCast(index);
+                    self.wait_for_key_register = 0;
+                    self.wait_for_key = false;
+                }
+            }
+            //return;
+        }
+
         try self.execute_instruction(
             try self.parse_instruction(data),
             memory,
@@ -219,6 +234,11 @@ pub const CPU = struct {
                         .vx = @intCast(b),
                     },
                 },
+                0x0A => .{
+                    .wait_for_key = .{
+                        .vx = @intCast(b),
+                    },
+                },
                 0x15 => .{
                     .set_delay_timer_to_vx = .{
                         .vx = @intCast(b),
@@ -258,9 +278,10 @@ pub const CPU = struct {
         keyboard: *components.keyboard.Keyboard,
     ) CPUError!void {
         std.log.debug("execute {any}", .{instruction});
+        // std.log.debug("registers {any}", .{self.registers});
         return switch (instruction) {
             .clear_screen => {
-                window.clear_screen() catch return;
+                window.clear_screen() catch return CPUError.failed_to_draw;
             },
 
             .jump => |i| {
@@ -347,14 +368,20 @@ pub const CPU = struct {
                 }
             },
             .skip_if_pressed => |i| {
-                if (keyboard.keys[self.registers.r[i.vx]] == true) {
+                const key = self.registers.r[i.vx];
+                if (keyboard.keys[key] == .just_pressed or keyboard.keys[key] == .pressed) {
                     memory.counter = memory.counter + 2;
                 }
             },
             .skip_if_not_pressed => |i| {
-                if (keyboard.keys[self.registers.r[i.vx]] == false) {
+                const key = self.registers.r[i.vx];
+                if (keyboard.keys[key] == .just_released or keyboard.keys[key] == .released) {
                     memory.counter = memory.counter + 2;
                 }
+            },
+            .wait_for_key => |i| {
+                self.wait_for_key_register = i.vx;
+                self.wait_for_key = true;
             },
 
             .load_i_immediate => |i| {
@@ -410,17 +437,22 @@ pub const CPU = struct {
                 const start_y = self.registers.r[i.vy];
                 const height = i.height;
 
+                var unset: bool = false;
                 for (0..height) |offset_y| {
                     const address = self.registers.i + offset_y;
                     inline for (0..8) |offset_x| {
-                        const bit = (0b10000000 >> offset_x) & memory.data[address];
+                        const bit: u1 = @intFromBool((0b10000000 >> offset_x) & memory.data[address] != 0);
                         const render_x = start_x + @as(u8, @intCast(offset_x));
                         const render_y = start_y + @as(u8, @intCast(offset_y));
-                        window.xor_pixel(render_x, render_y, bit != 0) catch {
+                        if (window.xor_pixel(render_x, render_y, bit) catch {
                             return CPUError.failed_to_draw;
-                        };
+                        }) {
+                            unset = true;
+                        }
                     }
                 }
+
+                self.registers.r[0xF] = @intFromBool(unset);
             },
             // else => CPUError.unimplemented_instruction,
         };
@@ -515,6 +547,9 @@ const _EXA1 = struct {
 const _FX07 = struct {
     vx: u4,
 };
+const _FX0A = struct {
+    vx: u4,
+};
 const _FX15 = struct {
     vx: u4,
 };
@@ -559,6 +594,7 @@ const Instruction = union(enum) {
     skip_if_vx_is_not_vy: _9XY0,
     skip_if_pressed: _EX9E,
     skip_if_not_pressed: _EXA1,
+    wait_for_key: _FX0A,
 
     load_i_immediate: _ANNN,
     load_vx_immediate: _6XNN,

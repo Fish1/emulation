@@ -14,7 +14,7 @@ pub const Memory = struct {
         return .{};
     }
 
-    pub fn increment_counter(self: *@This()) MemoryErrors!void {
+    pub fn tick(self: *@This()) MemoryErrors!void {
         if (self.counter + 2 >= MAX_MEMORY) {
             return MemoryErrors.outside_memory;
         }
