@@ -6,6 +6,7 @@ pub const Display = struct {
     }
 
     pub fn tick(_: *@This()) window.RenderError!void {
-        try window.show();
+        try window.flip_buffer();
+        try window.show_display();
     }
 };

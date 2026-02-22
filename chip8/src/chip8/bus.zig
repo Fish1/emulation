@@ -52,24 +52,47 @@ pub const Bus = struct {
 
     pub fn tick_burst(self: *@This(), delta: f64) !void {
         self.display_timer = self.display_timer + delta;
-        if (self.display_timer >= 1.0 / 60.0) {
-            self.cpu.display_wait = false;
+        if (self.display_timer >= self.display_hertz) {
             self.display_timer = 0.0;
 
-            try self.display.tick();
             self.timers.tick();
 
             for (0..self.instructions_per_frame) |_| {
                 const instruction = try self.memory.tick();
                 try self.cpu.tick(instruction, self.memory, self.timers, self.keyboard);
                 if (self.cpu.display_wait == true) {
+                    self.cpu.display_wait = false;
                     break;
                 }
             }
+
+            try self.display.tick();
         }
     }
 
     pub fn tick_hertz(self: *@This(), delta: f64) !void {
+        self.timers_timer = self.timers_timer + delta;
+        if (self.timers_timer >= self.timers_hertz) {
+            self.timers_timer = 0.0;
+            self.timers.tick();
+        }
+
+        self.display_timer = self.display_timer + delta;
+        if (self.display_timer >= self.display_hertz) {
+            self.display_timer = 0.0;
+            try self.display.tick();
+            self.cpu.display_wait = false;
+        }
+
+        self.cpu_timer = self.cpu_timer + delta;
+        if (self.cpu_timer >= self.cpu_hertz and self.cpu.display_wait == false) {
+            self.cpu_timer = 0.0;
+            const instruction = try self.memory.tick();
+            try self.cpu.tick(instruction, self.memory, self.timers, self.keyboard);
+        }
+    }
+
+    pub fn tick_cycles(self: *@This(), delta: f64) !void {
         self.timers_timer = self.timers_timer + delta;
         if (self.timers_timer >= self.timers_hertz) {
             self.timers_timer = 0.0;

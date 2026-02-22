@@ -36,9 +36,12 @@ pub fn main() !void {
     // try bus.load_program("./bin/5-quirks.ch8");
     try bus.load_program("./bin/6-keypad.ch8");
 
+    var delta_timer = try std.time.Timer.start();
+    var delta: f64 = 0.0;
+
     var quit = false;
     while (quit == false) {
-        try window.sdl_keep_alive();
+        try window.tick();
 
         while (window.poll()) |event| {
             keyboard.handle_event(event);
@@ -48,7 +51,10 @@ pub fn main() !void {
             }
         }
 
-        // try bus.tick_burst(window.get_delta());
-        try bus.tick_hertz(window.get_delta());
+        // try bus.tick_burst(delta);
+        try bus.tick_hertz(delta);
+
+        delta = @as(f64, @floatFromInt(delta_timer.read())) / @as(f64, @floatFromInt(std.time.ns_per_s));
+        delta_timer.reset();
     }
 }

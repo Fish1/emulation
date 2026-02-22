@@ -179,17 +179,24 @@ pub fn xor_pixel(x: u8, y: u8, incoming: u1) RenderError!u8 {
     }
 }
 
-pub fn sdl_keep_alive() RenderError!void {
+pub fn tick() !void {
+    last = now;
+    now = sdl.SDL_GetPerformanceCounter();
+    delta = @as(f64, @floatFromInt((now - last) * 10000)) / @as(f64, @floatFromInt(sdl.SDL_GetPerformanceCounter()));
     const success = sdl.SDL_UpdateWindowSurface(window);
     if (success == false) {
         return RenderError.failed_to_update_window_surface;
     }
-    last = now;
-    now = sdl.SDL_GetPerformanceCounter();
-    delta = @as(f64, @floatFromInt((now - last) * 10000)) / @as(f64, @floatFromInt(sdl.SDL_GetPerformanceCounter()));
 }
 
-pub fn show() RenderError!void {
+pub fn show_display() RenderError!void {
+    const success = sdl.SDL_UpdateWindowSurface(window);
+    if (success == false) {
+        return RenderError.failed_to_update_window_surface;
+    }
+}
+
+pub fn flip_buffer() RenderError!void {
     const src_rect = sdl.SDL_Rect{
         .x = 0,
         .y = 0,
