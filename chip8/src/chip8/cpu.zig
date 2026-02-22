@@ -415,7 +415,7 @@ pub const CPU = struct {
             },
 
             .write_bytes_to_memory => |i| {
-                for (0..i.vx + 1) |register| {
+                for (0..@as(u16, @intCast(i.vx)) + 1) |register| {
                     memory.data[self.registers.i + register] = self.registers.r[register];
                 }
 
@@ -423,8 +423,7 @@ pub const CPU = struct {
             },
 
             .read_bytes_to_registers => |i| {
-                for (0..i.vx + 1) |register| {
-                    // for (0..i.vx) |register| {
+                for (0..@as(u16, @intCast(i.vx)) + 1) |register| {
                     self.registers.r[register] = memory.query_byte(self.registers.i + @as(u16, @intCast(register)));
                 }
 
