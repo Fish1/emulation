@@ -140,7 +140,7 @@ pub fn clear_screen() RenderError!void {
     }
 }
 
-pub fn xor_pixel(x: u8, y: u8, incoming: u1) RenderError!bool {
+pub fn xor_pixel(x: u8, y: u8, incoming: u1) RenderError!u8 {
     const _x = x % 64;
     const _y = y % 32;
     var current_r: u8 = undefined;
@@ -172,10 +172,14 @@ pub fn xor_pixel(x: u8, y: u8, incoming: u1) RenderError!bool {
         return RenderError.failed_to_write_surface_pixel;
     }
 
-    return current_r == 1 and new_r == 0;
+    if (current == 1 and incoming == 1) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
-pub fn tick() RenderError!void {
+pub fn sdl_keep_alive() RenderError!void {
     const success = sdl.SDL_UpdateWindowSurface(window);
     if (success == false) {
         return RenderError.failed_to_update_window_surface;

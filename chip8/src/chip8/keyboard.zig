@@ -15,13 +15,22 @@ pub const Keyboard = struct {
         return .{};
     }
 
-    pub fn tick(self: *@This()) void {
-        for (&self.keys) |*key| {
-            if (key.* == .just_pressed) {
-                key.* = .pressed;
-            } else if (key.* == .just_released) {
-                key.* = .released;
+    pub fn get_released_key(self: *@This()) ?u8 {
+        for (self.keys, 0..) |key, index| {
+            if (key == .just_pressed) {
+                return @intCast(index);
             }
+        }
+        return null;
+    }
+
+    pub fn clear_keys(self: *@This()) void {
+        for (&self.keys) |*key| {
+            key.* = switch (key.*) {
+                .just_pressed => .pressed,
+                .just_released => .released,
+                else => key.*,
+            };
         }
     }
 

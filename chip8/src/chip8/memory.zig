@@ -14,11 +14,13 @@ pub const Memory = struct {
         return .{};
     }
 
-    pub fn tick(self: *@This()) MemoryErrors!void {
+    pub fn tick(self: *@This()) MemoryErrors!u16 {
+        const current_instruction = self.get_instruction();
         if (self.counter + 2 >= MAX_MEMORY) {
             return MemoryErrors.outside_memory;
         }
         self.counter = self.counter + 2;
+        return current_instruction;
     }
 
     pub fn get_byte(self: @This()) u8 {

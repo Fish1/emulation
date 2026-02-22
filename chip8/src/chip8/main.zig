@@ -27,16 +27,19 @@ pub fn main() !void {
     try window.init();
     defer window.deinit();
 
+    try bus.load_bios("./bin/bios.ch8");
+
     // try bus.load_program("./bin/1-chip8-logo.ch8");
     // try bus.load_program("./bin/2-ibm-logo.ch8");
     // try bus.load_program("./bin/3-corax+.ch8");
     // try bus.load_program("./bin/4-flags.ch8");
-
-    try bus.load_bios("./bin/bios.ch8");
-    try bus.load_program("./bin/5-quirks.ch8");
+    // try bus.load_program("./bin/5-quirks.ch8");
+    try bus.load_program("./bin/6-keypad.ch8");
 
     var quit = false;
     while (quit == false) {
+        try window.sdl_keep_alive();
+
         while (window.poll()) |event| {
             keyboard.handle_event(event);
             switch (event) {
@@ -45,6 +48,7 @@ pub fn main() !void {
             }
         }
 
-        try bus.tick(window.get_delta());
+        // try bus.tick_burst(window.get_delta());
+        try bus.tick_hertz(window.get_delta());
     }
 }

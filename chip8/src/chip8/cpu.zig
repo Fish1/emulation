@@ -42,6 +42,8 @@ pub const CPU = struct {
     stack: Stack = .init(),
     registers: Registers = .init(),
 
+    display_wait: bool = false,
+
     wait_for_key: bool = false,
     wait_for_key_register: u4 = 0,
 
@@ -56,16 +58,19 @@ pub const CPU = struct {
         timers: *components.timers.Timers,
         keyboard: *components.keyboard.Keyboard,
     ) CPUError!void {
+        // self.display_wait = false;
         if (self.wait_for_key) {
-            // std.debug.print("waiting for key\n", .{});
-            for (keyboard.keys, 0..16) |key, index| {
-                if (key == .just_released) {
-                    self.registers.r[self.wait_for_key_register] = @intCast(index);
-                    self.wait_for_key_register = 0;
-                    self.wait_for_key = false;
-                }
+            const just_released_key = keyboard.get_released_key();
+            if (just_released_key) |key| {
+                self.registers.r[self.wait_for_key_register] = key;
+                self.wait_for_key_register = 0;
+                self.wait_for_key = false;
+                keyboard.clear_keys();
+            } else {
+                memory.counter = memory.counter - 2;
             }
-            //return;
+        } else {
+            keyboard.clear_keys();
         }
 
         try self.execute_instruction(
@@ -419,6 +424,7 @@ pub const CPU = struct {
 
             .read_bytes_to_registers => |i| {
                 for (0..i.vx + 1) |register| {
+                    // for (0..i.vx) |register| {
                     self.registers.r[register] = memory.query_byte(self.registers.i + @as(u16, @intCast(register)));
                 }
 
@@ -433,26 +439,37 @@ pub const CPU = struct {
             },
 
             .draw_sprite => |i| {
-                const start_x = self.registers.r[i.vx];
-                const start_y = self.registers.r[i.vy];
+                const start_x = @mod(self.registers.r[i.vx], 64);
+                const start_y = @mod(self.registers.r[i.vy], 32);
                 const height = i.height;
 
-                var unset: bool = false;
+                var unset: u8 = 0;
                 for (0..height) |offset_y| {
                     const address = self.registers.i + offset_y;
+                    const render_y = start_y + @as(u8, @intCast(offset_y));
+                    const clip_y = @divFloor(render_y, 32) > 0;
+                    if (clip_y == true) {
+                        continue;
+                    }
+
                     inline for (0..8) |offset_x| {
-                        const bit: u1 = @intFromBool((0b10000000 >> offset_x) & memory.data[address] != 0);
                         const render_x = start_x + @as(u8, @intCast(offset_x));
-                        const render_y = start_y + @as(u8, @intCast(offset_y));
-                        if (window.xor_pixel(render_x, render_y, bit) catch {
-                            return CPUError.failed_to_draw;
-                        }) {
-                            unset = true;
+                        const clip_x = @divFloor(render_x, 64) > 0;
+                        if (clip_x == false) {
+                            const bit: u1 = @intFromBool((0b10000000 >> offset_x) & memory.data[address] != 0);
+
+                            const result = window.xor_pixel(render_x, render_y, bit) catch {
+                                return CPUError.failed_to_draw;
+                            };
+                            if (result > 0) {
+                                unset = 1;
+                            }
                         }
                     }
                 }
 
-                self.registers.r[0xF] = @intFromBool(unset);
+                self.registers.r[0xF] = unset;
+                self.display_wait = true;
             },
             // else => CPUError.unimplemented_instruction,
         };
