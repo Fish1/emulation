@@ -58,7 +58,16 @@ pub const CPU = struct {
         timers: *components.timers.Timers,
         keyboard: *components.keyboard.Keyboard,
     ) CPUError!void {
-        // self.display_wait = false;
+        self.handle_key_interupt(memory, keyboard);
+        _ = try self.execute_instruction(
+            try self.parse_instruction(data),
+            memory,
+            timers,
+            keyboard,
+        );
+    }
+
+    pub fn handle_key_interupt(self: *@This(), memory: *components.memory.Memory, keyboard: *components.keyboard.Keyboard) void {
         if (self.wait_for_key) {
             const just_released_key = keyboard.get_released_key();
             if (just_released_key) |key| {
@@ -72,16 +81,9 @@ pub const CPU = struct {
         } else {
             keyboard.clear_keys();
         }
-
-        try self.execute_instruction(
-            try self.parse_instruction(data),
-            memory,
-            timers,
-            keyboard,
-        );
     }
 
-    fn parse_instruction(_: @This(), data: u16) CPUError!Instruction {
+    pub fn parse_instruction(_: @This(), data: u16) CPUError!Instruction {
         std.log.debug("parse 0x{X:0>4}", .{data});
         const a = (data & 0xf000) >> 12;
         const b = (data & 0x0f00) >> 8;
@@ -275,16 +277,17 @@ pub const CPU = struct {
         };
     }
 
-    fn execute_instruction(
+    pub fn execute_instruction(
         self: *@This(),
         instruction: Instruction,
         memory: *components.memory.Memory,
         timers: *components.timers.Timers,
         keyboard: *components.keyboard.Keyboard,
-    ) CPUError!void {
+    ) CPUError!u32 {
         std.log.debug("execute {any}", .{instruction});
         // std.log.debug("registers {any}", .{self.registers});
-        return switch (instruction) {
+        var extra_ticks: u32 = 0;
+        switch (instruction) {
             .clear_screen => {
                 window.clear_screen() catch return CPUError.failed_to_draw;
             },
@@ -355,33 +358,39 @@ pub const CPU = struct {
             .skip_if_vx_is_immediate => |i| {
                 if (self.registers.r[i.vx] == i.immediate) {
                     memory.counter = memory.counter + 2;
+                    extra_ticks = 4;
                 }
             },
             .skip_if_vx_is_not_immediate => |i| {
                 if (self.registers.r[i.vx] != i.immediate) {
                     memory.counter = memory.counter + 2;
+                    extra_ticks = 4;
                 }
             },
             .skip_if_vx_is_vy => |i| {
                 if (self.registers.r[i.vx] == self.registers.r[i.vy]) {
                     memory.counter = memory.counter + 2;
+                    extra_ticks = 4;
                 }
             },
             .skip_if_vx_is_not_vy => |i| {
                 if (self.registers.r[i.vx] != self.registers.r[i.vy]) {
                     memory.counter = memory.counter + 2;
+                    extra_ticks = 4;
                 }
             },
             .skip_if_pressed => |i| {
                 const key = self.registers.r[i.vx];
                 if (keyboard.keys[key] == .just_pressed or keyboard.keys[key] == .pressed) {
                     memory.counter = memory.counter + 2;
+                    extra_ticks = 4;
                 }
             },
             .skip_if_not_pressed => |i| {
                 const key = self.registers.r[i.vx];
                 if (keyboard.keys[key] == .just_released or keyboard.keys[key] == .released) {
                     memory.counter = memory.counter + 2;
+                    extra_ticks = 4;
                 }
             },
             .wait_for_key => |i| {
@@ -471,118 +480,184 @@ pub const CPU = struct {
                 self.display_wait = true;
             },
             // else => CPUError.unimplemented_instruction,
-        };
+        }
+
+        return extra_ticks;
     }
 };
 
-const _00E0 = struct {};
-const _00EE = struct {};
+const _00E0 = struct {
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 10,
+};
+const _00EE = struct {
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 10,
+};
 const _1NNN = struct {
     address: u12,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 12,
 };
 const _2NNN = struct {
     address: u12,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 26,
 };
 const _3XNN = struct {
     vx: u4,
     immediate: u8,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 10,
 };
 const _4XNN = struct {
     vx: u4,
     immediate: u8,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 10,
 };
 const _5XY0 = struct {
     vx: u4,
     vy: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 14,
 };
 const _6XNN = struct {
     vx: u4,
     immediate: u8,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 6,
 };
 const _7XNN = struct {
     vx: u4,
     immediate: u8,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 10,
 };
 const _8XY0 = struct {
     vx: u4,
     vy: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 12,
 };
 const _8XY1 = struct {
     vx: u4,
     vy: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 44,
 };
 const _8XY2 = struct {
     vx: u4,
     vy: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 44,
 };
 const _8XY3 = struct {
     vx: u4,
     vy: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 44,
 };
 const _8XY4 = struct {
     vx: u4,
     vy: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 44,
 };
 const _8XY5 = struct {
     vx: u4,
     vy: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 44,
 };
 const _8XY6 = struct {
     vx: u4,
     vy: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 44,
 };
 const _8XY7 = struct {
     vx: u4,
     vy: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 44,
 };
 const _8XYE = struct {
     vx: u4,
     vy: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 44,
 };
 const _9XY0 = struct {
     vx: u4,
     vy: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 14,
 };
 const _ANNN = struct {
     immediate: u12,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 12,
 };
 const _BNNN = struct {
     immediate: u12,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 22,
 };
 const _DXYN = struct {
     vx: u4,
     vy: u4,
     height: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 80,
 };
 const _EX9E = struct {
     vx: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 14,
 };
 const _EXA1 = struct {
     vx: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 14,
 };
 const _FX07 = struct {
     vx: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 10,
 };
 const _FX0A = struct {
     vx: u4,
+    parse_cycles: u32 = 1,
+    execute_cycles: u32 = 1,
 };
 const _FX15 = struct {
     vx: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 10,
 };
 const _FX1E = struct {
     vx: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 16,
 };
 const _FX33 = struct {
     vx: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 84,
 };
 const _FX55 = struct {
     vx: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 18,
 };
 const _FX65 = struct {
     vx: u4,
+    parse_cycles: u32 = 68,
+    execute_cycles: u32 = 18,
 };
 
-const Instruction = union(enum) {
+pub const Instruction = union(enum) {
     clear_screen: _00E0,
 
     jump: _1NNN,

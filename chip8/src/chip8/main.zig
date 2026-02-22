@@ -33,8 +33,8 @@ pub fn main() !void {
     // try bus.load_program("./bin/2-ibm-logo.ch8");
     // try bus.load_program("./bin/3-corax+.ch8");
     // try bus.load_program("./bin/4-flags.ch8");
-    // try bus.load_program("./bin/5-quirks.ch8");
-    try bus.load_program("./bin/6-keypad.ch8");
+    try bus.load_program("./bin/5-quirks.ch8");
+    // try bus.load_program("./bin/6-keypad.ch8");
 
     var delta_timer = try std.time.Timer.start();
     var delta: f64 = 0.0;
@@ -52,7 +52,8 @@ pub fn main() !void {
         }
 
         // try bus.tick_burst(delta);
-        try bus.tick_hertz(delta);
+        // try bus.tick_hertz(delta);
+        try bus.tick_cycles(delta);
 
         delta = @as(f64, @floatFromInt(delta_timer.read())) / @as(f64, @floatFromInt(std.time.ns_per_s));
         delta_timer.reset();
