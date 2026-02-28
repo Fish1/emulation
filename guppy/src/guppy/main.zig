@@ -1,5 +1,6 @@
 const std = @import("std");
 const components = @import("components/components.zig");
+const sst = @import("single-step-tests.zig");
 
 pub fn main() !void {
     std.log.info("Project Guppy!", .{});
@@ -36,47 +37,23 @@ pub fn main() !void {
 }
 
 test "cpu single step tests" {
-    const data = try std.fs.cwd().readFileAlloc(std.testing.allocator, "./tests/sm83/v1/00.json", 1000000);
+    const data = try std.fs.cwd().readFileAlloc(std.testing.allocator, "./tests/sm83/v1/01.json", 1000000);
     defer std.testing.allocator.free(data);
 
-    const Data = []struct {
-        name: []u8,
-        initial: struct {
-            pc: u16,
-            sp: u16,
-            a: u8,
-            b: u8,
-            c: u8,
-            d: u8,
-            e: u8,
-            f: u8,
-            h: u8,
-            l: u8,
-            ime: u8,
-            ie: u8,
-            ram: [][]u16,
-        },
-        final: struct {
-            pc: u16,
-            sp: u16,
-            a: u8,
-            b: u8,
-            c: u8,
-            d: u8,
-            e: u8,
-            f: u8,
-            h: u8,
-            l: u8,
-            ime: u8,
-            ram: [][]u16,
-        },
-    };
-
-    const result: std.json.Parsed(Data) = try std.json.parseFromSlice(Data, std.testing.allocator, data, .{ .ignore_unknown_fields = true });
+    const result: std.json.Parsed(sst.Tests) = try std.json.parseFromSlice(sst.Tests, std.testing.allocator, data, .{ .ignore_unknown_fields = true });
     defer result.deinit();
 
     for (result.value) |t| {
-        const cpu = components.cpu.CPU.init();
-        std.debug.print("{s}\n", .{t.name});
+        std.debug.print("running test: {s}\n", .{t.name});
+        var memory = components.memory.Memory.init_test(t.initial);
+        var cpu = components.cpu.CPU.init_test(t.initial);
+        var bus = components.bus.Bus.init(.{
+            .cpu = &cpu,
+            .memory = &memory,
+        });
+        try bus.tick();
+
+        try std.testing.expect(memory.validate_test(t.final));
+        try std.testing.expect(cpu.validate_test(t.final));
     }
 }

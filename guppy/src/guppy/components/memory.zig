@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const sst = @import("../single-step-tests.zig");
+
 pub const Memory = struct {
     // rom: [0x7fff + 0x1]u8 = std.mem.zeros([0x7fff + 0x1]u8),
     // vram: [0x9fff - 0x8000 + 0x1]u8 = std.mem.zeros([0x9fff - 0x8000 + 0x1]u8),
@@ -13,6 +15,27 @@ pub const Memory = struct {
 
     pub fn init() @This() {
         return .{};
+    }
+
+    pub fn init_test(initial: sst.Initial) @This() {
+        var result: @This() = .{};
+        for (initial.ram) |v| {
+            const location = v[0];
+            const value = v[1];
+            result.data[location] = @intCast(value);
+        }
+        return result;
+    }
+
+    pub fn validate_test(self: @This(), final: sst.Final) bool {
+        for (final.ram) |v| {
+            const location = v[0];
+            const value = v[1];
+            if (self.data[location] != value) {
+                return false;
+            }
+        }
+        return true;
     }
 
     pub fn get_rom_bank_00(self: *@This()) *const []u8 {

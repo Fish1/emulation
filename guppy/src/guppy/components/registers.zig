@@ -7,7 +7,23 @@ pub const Registers = struct {
         return .{};
     }
 
-    pub fn get_u16(self: *@This(), index: u4) u16 {
+    pub fn get_a(self: @This()) u8 {
+        return self.data[0];
+    }
+
+    pub fn set_a(self: @This(), value: u8) void {
+        self.data[0] = value;
+    }
+
+    pub fn get_f(self: @This()) u8 {
+        return self.data[1];
+    }
+
+    pub fn set_f(self: @This(), value: u8) void {
+        self.data[1] = value;
+    }
+
+    pub fn get_u16(self: @This(), index: u4) u16 {
         return std.mem.readInt(u16, self.data[index..][0..2], .little);
     }
 
@@ -39,7 +55,7 @@ pub const Registers = struct {
         self.set_u16(6, value);
     }
 
-    pub fn get_sp(self: *@This()) u16 {
+    pub fn get_sp(self: @This()) u16 {
         return self.get_u16(8);
     }
 
@@ -47,7 +63,7 @@ pub const Registers = struct {
         self.set_u16(8, value);
     }
 
-    pub fn get_pc(self: *@This()) u16 {
+    pub fn get_pc(self: @This()) u16 {
         return self.get_u16(10);
     }
 
