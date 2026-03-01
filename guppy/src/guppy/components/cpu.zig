@@ -4,18 +4,24 @@ const sst = @import("../single-step-tests.zig");
 
 const Memory = @import("memory.zig").Memory;
 const Registers = @import("registers.zig").Registers;
-const OPCode = @import("../opcodes.zig").OPCode;
+const OPCode = @import("../opcodes/opcodes.zig").OPCode;
+
+const cds = @import("../opcodes/opcodes.zig");
 
 pub const CPUError = error{
     failed_to_parse,
 };
 
 const OC = union {
-    oc0: OPCode(0),
-    oc1: OPCode(1),
-    oc2: OPCode(2),
-    oc3: OPCode(3),
-    oc4: OPCode(4),
+    oc_0_1: OPCode(0, 1),
+    oc_1_1: OPCode(1, 1),
+    oc_2_1: OPCode(2, 1),
+    oc_0_2: OPCode(0, 2),
+    oc_1_2: OPCode(1, 2),
+    oc_2_2: OPCode(2, 2),
+    oc_0_3: OPCode(0, 3),
+    oc_1_3: OPCode(1, 3),
+    oc_2_3: OPCode(2, 3),
 };
 
 pub const CPU = struct {
@@ -68,57 +74,19 @@ pub const CPU = struct {
     pub fn parse(self: *@This()) CPUError!void {
         self.opcode = switch (self.code) {
             0x00 => OC{
-                .oc0 = .init(.{
-                    .value = self.code,
-                    .length = 1,
+                .oc_0_1 = .init(.{
                     .t_cycles = 4,
                     .m_cycles = 1,
+                    .bytes = .{self.code},
                     .steps = .{},
                 }),
             },
             0x01 => OC{
-                .oc3 = .init(.{
-                    .value = self.code,
-                    .length = 1,
+                .oc_2_3 = .init(.{
                     .t_cycles = 12,
                     .m_cycles = 3,
-                    .steps = .{},
-                }),
-            },
-            0x13 => OC{
-                .oc0 = .init(.{
-                    .value = self.code,
-                    .length = 1,
-                    .t_cycles = 8,
-                    .m_cycles = 2,
-                    .steps = .{},
-                }),
-            },
-            0x31 => OC{
-                .oc0 = .init(.{
-                    .value = self.code,
-                    .length = 3,
-                    .t_cycles = 12,
-                    .m_cycles = 3,
-                    .steps = .{},
-                }),
-            },
-            0xc3 => OC{
-                .oc0 = .init(.{
-                    .value = self.code,
-                    .length = 3,
-                    .t_cycles = 16,
-                    .m_cycles = 4,
-                    .steps = .{},
-                }),
-            },
-            0xfe => OC{
-                .oc0 = .init(.{
-                    .value = self.code,
-                    .length = 2,
-                    .t_cycles = 8,
-                    .m_cycles = 2,
-                    .steps = .{},
+                    .bytes = .{ self.code, 0, 0 },
+                    .steps = cds.steps_0x01,
                 }),
             },
             else => {
@@ -126,10 +94,6 @@ pub const CPU = struct {
                 return CPUError.failed_to_parse;
             },
         };
-
-        if (self.code != 0) {
-            std.debug.print("pc = {any} , opcode = {any} , byte = 0x{x:0>2}\n", .{ self.registers.get_pc(), self.opcode, self.code });
-        }
     }
 
     pub fn execute(_: *@This()) void {}
