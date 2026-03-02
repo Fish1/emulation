@@ -51,7 +51,9 @@ test "cpu single step tests" {
             .cpu = &cpu,
             .memory = &memory,
         });
-        try bus.tick();
+        while (cpu.opcode_count < 1) {
+            try bus.tick();
+        }
 
         try std.testing.expect(memory.validate_test(t.final));
         try std.testing.expect(cpu.validate_test(t.final));

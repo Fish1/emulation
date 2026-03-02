@@ -12,23 +12,21 @@ pub const CPUError = error{
     failed_to_parse,
 };
 
-const OC = union {
-    oc_0_1: OPCode(0, 1),
-    oc_1_1: OPCode(1, 1),
-    oc_2_1: OPCode(2, 1),
-    oc_0_2: OPCode(0, 2),
-    oc_1_2: OPCode(1, 2),
-    oc_2_2: OPCode(2, 2),
-    oc_0_3: OPCode(0, 3),
-    oc_1_3: OPCode(1, 3),
-    oc_2_3: OPCode(2, 3),
-};
-
 pub const CPU = struct {
     registers: Registers = .init(),
 
+    opcode: OPCode = .init(.{
+        .length = 0,
+        .m_cycles = 0,
+        .t_cycles = 0,
+        .bytes = .{ 0, 0, 0 },
+        .m_steps = cds.m_steps_0x00,
+        .t_steps = cds.t_steps_0x00,
+    }),
     code: u8 = undefined,
-    opcode: OC = undefined,
+
+    m_cycle: u8 = 0,
+    opcode_count: usize = 0,
 
     pub fn init() @This() {
         var result: @This() = .{};
@@ -66,29 +64,38 @@ pub const CPU = struct {
     }
 
     pub fn fetch(self: *@This(), memory: *Memory) void {
+        if (self.m_cycle < self.opcode.m_cycles) {
+            return;
+        }
+
         const pc = self.registers.get_pc();
         self.code = memory.data[pc];
         self.registers.set_pc(pc + 1);
     }
 
     pub fn parse(self: *@This()) CPUError!void {
+        if (self.m_cycle < self.opcode.m_cycles) {
+            return;
+        }
+        self.m_cycle = 1;
+
         self.opcode = switch (self.code) {
-            0x00 => OC{
-                .oc_0_1 = .init(.{
-                    .t_cycles = 4,
-                    .m_cycles = 1,
-                    .bytes = .{self.code},
-                    .steps = .{},
-                }),
-            },
-            0x01 => OC{
-                .oc_2_3 = .init(.{
-                    .t_cycles = 12,
-                    .m_cycles = 3,
-                    .bytes = .{ self.code, 0, 0 },
-                    .steps = cds.steps_0x01,
-                }),
-            },
+            0x00 => .init(.{
+                .length = 1,
+                .m_cycles = 1,
+                .t_cycles = 4,
+                .bytes = .{ self.code, 0, 0 },
+                .m_steps = cds.m_steps_0x00,
+                .t_steps = cds.t_steps_0x00,
+            }),
+            0x01 => .init(.{
+                .length = 3,
+                .m_cycles = 3,
+                .t_cycles = 12,
+                .bytes = .{ self.code, 0, 0 },
+                .m_steps = cds.m_steps_0x01,
+                .t_steps = cds.t_steps_0x01,
+            }),
             else => {
                 std.log.err("failed to parse code: 0x{x:0>2}", .{self.code});
                 return CPUError.failed_to_parse;
@@ -96,5 +103,14 @@ pub const CPU = struct {
         };
     }
 
-    pub fn execute(_: *@This()) void {}
+    pub fn execute(self: *@This()) void {
+        if (self.m_cycle < self.opcode.m_cycles) {
+            self.opcode.m_steps[self.m_cycle](&self.opcode);
+            self.m_cycle = self.m_cycle + 1;
+        }
+
+        if (self.m_cycle == self.opcode.m_cycles) {
+            self.opcode_count = self.opcode_count + 1;
+        }
+    }
 };
