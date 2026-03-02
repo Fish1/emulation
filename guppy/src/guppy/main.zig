@@ -28,7 +28,7 @@ pub fn main() !void {
         tick_timer = tick_timer + delta;
         if (tick_timer >= tick_time) {
             tick_timer = 0;
-            try bus.tick();
+            bus.tick();
         }
 
         delta = timer.read();
@@ -45,14 +45,17 @@ test "cpu single step tests" {
 
     for (result.value) |t| {
         std.debug.print("running test: {s}\n", .{t.name});
+        std.debug.print("{any}\n", .{t.initial});
         var memory = components.memory.Memory.init_test(t.initial);
         var cpu = components.cpu.CPU.init_test(t.initial);
+        cpu.fetch(&memory);
+        cpu.registers.inc_pc();
         var bus = components.bus.Bus.init(.{
             .cpu = &cpu,
             .memory = &memory,
         });
-        while (cpu.opcode_count < 1) {
-            try bus.tick();
+        while (cpu.opcode_count <= 1) {
+            bus.tick();
         }
 
         try std.testing.expect(memory.validate_test(t.final));

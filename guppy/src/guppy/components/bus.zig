@@ -14,10 +14,8 @@ pub const Bus = struct {
         };
     }
 
-    pub fn tick(self: *@This()) !void {
-        self.cpu.fetch(self.memory);
-        try self.cpu.parse();
-        self.cpu.execute();
+    pub fn tick(self: *@This()) void {
+        self.cpu.execute(self);
     }
 
     pub fn load_boot(self: *@This(), filename: []const u8) !void {
