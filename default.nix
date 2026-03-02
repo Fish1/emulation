@@ -11,7 +11,7 @@
 			pkgs.stdenv.mkDerivation {
 				pname = "chip8";
 				version = "0.0.1";
-				src = ./.;
+				src = ./chip8;
 				buildPhase = ''
 					echo 'hello world!' > $out
 				'';
