@@ -38,10 +38,6 @@ pub const Bus = struct {
         };
     }
 
-    pub fn wipe_memory(self: *@This()) void {
-        self.memory.data = std.mem.zeroes([4096]u8);
-    }
-
     pub fn load_program(self: *@This(), filename: []const u8) !void {
         _ = try std.fs.cwd().readFile(filename, self.memory.data[USER_SPACE_OFFSET..4096]);
     }

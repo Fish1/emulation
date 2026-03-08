@@ -1,25 +1,41 @@
 {
   "nodes": {
+    "flake-utils": {
+      "inputs": {
+        "systems": "systems"
+      },
+      "locked": {
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1770841267,
-        "narHash": "sha256-9xejG0KoqsoKEGp2kVbXRlEYtFFcDTHjidiuX8hGO44=",
+        "lastModified": 1772936076,
+        "narHash": "sha256-VqLtUDAWvxLt5Iogzhl3iT3HMf9rmMhqMM5vdp4vJZ4=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "ec7c70d12ce2fc37cb92aff673dcdca89d187bae",
+        "rev": "92cfc5b4b0639e8842016d419be526464e412d48",
         "type": "github"
       },
       "original": {
         "owner": "nixos",
-        "ref": "nixos-unstable",
         "repo": "nixpkgs",
         "type": "github"
       }
     },
     "root": {
       "inputs": {
-        "nixpkgs": "nixpkgs",
-        "utils": "utils"
+        "zig2nix": "zig2nix"
       }
     },
     "systems": {
@@ -37,21 +53,22 @@
         "type": "github"
       }
     },
-    "utils": {
+    "zig2nix": {
       "inputs": {
-        "systems": "systems"
+        "flake-utils": "flake-utils",
+        "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1731533236,
-        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "lastModified": 1772936906,
+        "narHash": "sha256-jr1Vu4eBlJ3YzVAwqpD/IIm3bhewmvJg9tyX9Qjw9/Y=",
+        "owner": "Cloudef",
+        "repo": "zig2nix",
+        "rev": "8f1e59ce436f838938038a937eae803494a2d0dc",
         "type": "github"
       },
       "original": {
-        "owner": "numtide",
-        "repo": "flake-utils",
+        "owner": "Cloudef",
+        "repo": "zig2nix",
         "type": "github"
       }
     }

@@ -10,32 +10,25 @@ pub fn build(b: *std.Build) void {
     });
     const sdl_lib = sdl_dep.artifact("SDL3");
 
-    const mod = b.addModule("window", .{
-        .root_source_file = b.path("src/window/main.zig"),
+    const app_mod = b.createModule(.{
+        .root_source_file = b.path("src/chip8/main.zig"),
         .target = target,
+        .optimize = optimize,
     });
-    mod.linkLibrary(sdl_lib);
+    app_mod.linkLibrary(sdl_lib);
+    // app_mod.linkSystemLibrary("SDL3", .{});
+    app_mod.link_libc = true;
 
-    const exe = b.addExecutable(.{
+    const app = b.addExecutable(.{
         .name = "chip8",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("src/chip8/main.zig"),
-            .target = target,
-            .optimize = optimize,
-            .imports = &.{
-                .{ .name = "window", .module = mod },
-            },
-        }),
+        .root_module = app_mod,
     });
 
-    exe.root_module.linkSystemLibrary("SDL3", .{});
-    exe.linkLibC();
-
-    b.installArtifact(exe);
+    b.installArtifact(app);
 
     const run_step = b.step("run", "Run the app");
 
-    const run_cmd = b.addRunArtifact(exe);
+    const run_cmd = b.addRunArtifact(app);
     run_step.dependOn(&run_cmd.step);
 
     run_cmd.step.dependOn(b.getInstallStep());
@@ -44,19 +37,12 @@ pub fn build(b: *std.Build) void {
         run_cmd.addArgs(args);
     }
 
-    const mod_tests = b.addTest(.{
-        .root_module = mod,
+    const app_tests = b.addTest(.{
+        .root_module = app.root_module,
     });
 
-    const run_mod_tests = b.addRunArtifact(mod_tests);
-
-    const exe_tests = b.addTest(.{
-        .root_module = exe.root_module,
-    });
-
-    const run_exe_tests = b.addRunArtifact(exe_tests);
+    const run_app_tests = b.addRunArtifact(app_tests);
 
     const test_step = b.step("test", "Run tests");
-    test_step.dependOn(&run_mod_tests.step);
-    test_step.dependOn(&run_exe_tests.step);
+    test_step.dependOn(&run_app_tests.step);
 }

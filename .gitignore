@@ -1,3 +1,6 @@
+# nix build
+./result
+
 # nix direnv
 .direnv
 .envrc

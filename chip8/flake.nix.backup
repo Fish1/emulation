@@ -1,0 +1,41 @@
+{
+	description = "chip8";
+
+	inputs = {
+		nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+		utils.url = "github:numtide/flake-utils";
+
+		zig-overlay = {
+			url = "github:mitchellh/zig-overlay";
+			inputs.nixpkgs.follows = "nixpkgs";
+		};
+
+		zls-overlay = {
+			url = "github:fish1/zls-overlay";
+			inputs.nixpkgs.follows = "nixpkgs";
+		};
+	};
+
+	outputs = { self, nixpkgs, utils, zig-overlay, zls-overlay }:
+	utils.lib.eachDefaultSystem(system:
+		let
+			pkgs = import nixpkgs {
+					# stdenv.hostPlatform.system = system;
+				system = system;
+				overlays = [
+					zig-overlay.overlays.default
+					zls-overlay.overlays.default
+				];
+			};
+		in {
+			devShells.default = pkgs.mkShellNoCC {
+				buildInputs = [
+					pkgs.zigpkgs."0.15.2"
+					pkgs.zlspkgs."0.15.1"
+					pkgs.zon2nix
+					pkgs.sdl3
+				];
+			};
+		}
+	);
+}

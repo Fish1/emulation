@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const window = @import("window");
+const window = @import("./window.zig");
 const components = @import("./components.zig");
 
 const Bus = @import("bus.zig").Bus;

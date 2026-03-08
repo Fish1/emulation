@@ -1,5 +1,5 @@
 const std = @import("std");
-const window = @import("window");
+const window = @import("./window.zig");
 
 pub const KeyState = enum {
     just_pressed,

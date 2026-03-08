@@ -1,0 +1,14 @@
+{
+  "sdl-0.4.0+3.4.0-SDL--rq2owEZsySGuHCuVJ9naEvH3i3e_pyUIjziBtJ-": {
+    "name": "sdl",
+    "url": "git+https://github.com/castholm/SDL.git#887fa805e40d5c7bb3955ae69b89ed566c6a0471",
+    "hash": "sha256-AsOlMECtTVp+WRyrbjSh4hVozJKz1924B5dHf80/eIw=",
+    "rev": "887fa805e40d5c7bb3955ae69b89ed566c6a0471"
+  },
+  "sdl_linux_deps-0.0.0-SDL_ltg8hgAOayMwFN6BhHW3Rs5UPtf6n8m-2qcQHuGS": {
+    "name": "sdl_linux_deps",
+    "url": "git+https://github.com/castholm/SDL_linux_deps.git#fd349940b9dbaa0f221703b05df826d745d7ce2a",
+    "hash": "sha256-sgaGfevW0iUweBYFlce749UERP3j56wj32YMp6Kl4lw=",
+    "rev": "fd349940b9dbaa0f221703b05df826d745d7ce2a"
+  }
+}

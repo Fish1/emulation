@@ -1,4 +1,4 @@
-const window = @import("window");
+const window = @import("./window.zig");
 
 pub const Display = struct {
     pub fn init() @This() {
