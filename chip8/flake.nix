@@ -77,7 +77,7 @@
         # Packages required for compiling, linking and running
         # Libraries added here will be automatically added to the LD_LIBRARY_PATH and PKG_CONFIG_PATH
         nativeBuildInputs = [
-					env.pkgs.sdl3
+						env.pkgs.sdl3.dev
 				]
           ++ packages.default.nativeBuildInputs
           ++ packages.default.buildInputs

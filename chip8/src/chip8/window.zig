@@ -20,6 +20,9 @@ const WindowInitErrors = error{
 pub fn init() WindowInitErrors!void {
     const success = sdl.SDL_Init(sdl.SDL_INIT_VIDEO);
     if (success == false) {
+        const err = sdl.SDL_GetError();
+        const zerr = std.mem.sliceTo(err, 0);
+        std.debug.print("{s}\n", .{zerr});
         return WindowInitErrors.FAILED_TO_INITIALIZE_RENDERER;
     }
 

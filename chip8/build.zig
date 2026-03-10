@@ -16,8 +16,8 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     app_mod.linkLibrary(sdl_lib);
-    // app_mod.linkSystemLibrary("SDL3", .{});
-    app_mod.link_libc = true;
+    app_mod.linkSystemLibrary("SDL3", .{});
+    // app_mod.link_libc = true;
 
     const app = b.addExecutable(.{
         .name = "chip8",
