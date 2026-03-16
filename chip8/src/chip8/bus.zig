@@ -42,12 +42,12 @@ pub const Bus = struct {
         self.memory.data = std.mem.zeroes([4096]u8);
     }
 
-    pub fn load_program(self: *@This(), filename: []const u8) !void {
-        _ = try std.fs.cwd().readFile(filename, self.memory.data[USER_SPACE_OFFSET..4096]);
+    pub fn load_program(self: *@This(), io: std.Io, filename: []const u8) !void {
+        _ = try std.Io.Dir.cwd().readFile(io, filename, self.memory.data[USER_SPACE_OFFSET..4096]);
     }
 
-    pub fn load_bios(self: *@This(), filename: []const u8) !void {
-        _ = try std.fs.cwd().readFile(filename, self.memory.data[0..USER_SPACE_OFFSET]);
+    pub fn load_bios(self: *@This(), io: std.Io, filename: []const u8) !void {
+        _ = try std.Io.Dir.cwd().readFile(io, filename, self.memory.data[0..USER_SPACE_OFFSET]);
     }
 
     pub fn tick_burst(self: *@This(), delta: f64) !void {
