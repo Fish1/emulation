@@ -9,7 +9,7 @@ pub const std_options: std.Options = .{
     .log_level = .debug,
 };
 
-pub fn main() !void {
+pub fn main(init: std.process.Init) !void {
     var memory = components.memory.Memory.init();
     var cpu = components.cpu.CPU.init();
     var timers = components.timers.Timers.init();
@@ -27,16 +27,16 @@ pub fn main() !void {
     try window.init();
     defer window.deinit();
 
-    try bus.load_bios("./bin/bios.ch8");
+    try bus.load_bios(init.io, "./bin/bios.ch8");
 
     // try bus.load_program("./bin/1-chip8-logo.ch8");
     // try bus.load_program("./bin/2-ibm-logo.ch8");
     // try bus.load_program("./bin/3-corax+.ch8");
     // try bus.load_program("./bin/4-flags.ch8");
     // try bus.load_program("./bin/5-quirks.ch8");
-    try bus.load_program("./bin/6-keypad.ch8");
+    try bus.load_program(init.io, "./bin/6-keypad.ch8");
 
-    var delta_timer = try std.time.Timer.start();
+    var prev = std.Io.Timestamp.now(init.io, .real);
     var delta: f64 = 0.0;
 
     var quit = false;
@@ -54,7 +54,9 @@ pub fn main() !void {
         // try bus.tick_burst(delta);
         try bus.tick_hertz(delta);
 
-        delta = @as(f64, @floatFromInt(delta_timer.read())) / @as(f64, @floatFromInt(std.time.ns_per_s));
-        delta_timer.reset();
+        const now = std.Io.Timestamp.now(init.io, .real);
+        const diff = prev.durationTo(now).toNanoseconds();
+        delta = @as(f64, @floatFromInt(diff)) / @as(f64, @floatFromInt(std.time.ns_per_s));
+        prev = now;
     }
 }
